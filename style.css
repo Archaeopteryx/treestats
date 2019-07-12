@@ -1,0 +1,55 @@
+body {
+  font-family: Verdana, Arial;
+}
+
+#warnings-and-errors {
+  color: #D00;
+  white-space: pre;
+}
+
+.tree-section {
+  border: 3px solid #999;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  padding: 5px 10px 5px 10px;
+}
+
+.tree-title {
+  font-size: x-large;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.tree-description, .tree-closed-consequences {
+  margin-bottom: 10px;
+}
+
+.tree-subsection-header {
+  font-weight: bold;
+}
+
+.tree-statistics {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.tree-statistics-state {
+  margin: 2px;
+  min-width: 100px;
+  width: 100px;
+}
+
+.tree-statistics-label, .tree-statistics-value {
+  margin: 5px;
+  text-align: right;
+}
+
+.closed-category {
+  background-color: #FFF666;
+}
+
+-.longterm-chart {
+  height: 150px;
+  width: 100%;
+}

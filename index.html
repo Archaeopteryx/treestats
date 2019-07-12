@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <title>autoland tree status statistics at Mozilla</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="text/javascript" src="moment.js" charset="utf-8"></script>
+    <script type="text/javascript" src="chart.js" charset="utf-8"></script>
+    <script type="text/javascript" src="treeclosures.js" charset="utf-8"></script>
+  </head>
+  <body>
+    <h1>Treestatus statistics</h1>
+    <div id="warnings-and-errors"></div>
+    <div id="autoland" class="tree-section">
+      <div class="tree-title">autoland</div>
+      <div class="tree-description">The Phabricator/Lando/Conduit system lands most of the changes initially here for integration and if there are no issues, they later get merged into production (mozilla-central) which gets served as Nightly builds to users contributing to testing.</div>
+      <div class="tree-closed-consequences">If this tree is closed: Developers can still request their changes to land once the tree reopens. The longer it is closed, the more likely patches waiting to land will have conflicting changesets and the one which attempts to land later will fail to apply and need an update by the developer. The arrival of the code in production trees (mozilla-central) is also delayed.</div>
+      <div class="tree-subsection">
+        <canvas id="by-day-stats" class="longterm-chart"></canvas>
+      </div>
+      <div class="tree-subsection">
+        <canvas id="longterm-chart-autoland" class="longterm-chart"></canvas>
+      </div>
+    </div>
+  </body>
+</html>
