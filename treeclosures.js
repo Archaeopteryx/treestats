@@ -262,7 +262,7 @@ async function getTreeStats(treename) {
     options: {
       title: {
         display: true,
-        text: 'Tree closure statistics by day'
+        text: 'Tree closure statistics by day [hours]'
       },
       tooltips: {
         mode: 'index',
