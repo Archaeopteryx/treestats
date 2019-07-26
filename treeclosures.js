@@ -2,13 +2,47 @@
 const SHORTTERM_VIEW_IN_DAYS = 28;
 const LONGTERM_VIEW_IN_DAYS = 2 * 365; // 2 years
 const MOVING_AVERAGE_IN_DAYS = 28; // 4 weeks
+
+// Pacific Daylight Savings Time for the start of the day
+const DAYSTART_OFFSET_TO_UTC_IN_HOURS = 7;
+
+// Release cycles start and end dates on mozilla-central
+const releaseCycles = [
+  {
+    "version": 65,
+    "start": "2018-10-22",
+    "end": "2018-12-10",
+  },
+  {
+    "version": 66,
+    "start": "2018-12-10",
+    "end": "2019-01-28",
+  },
+  {
+    "version": 67,
+    "start": "2019-01-28",
+    "end": "2019-03-18",
+  },
+  {
+    "version": 68,
+    "start": "2019-03-18",
+    "end": "2019-05-20",
+  },
+  {
+    "version": 69,
+    "start": "2019-05-20",
+    "end": "2019-07-08",
+  },
+  {
+    "version": 70,
+    "start": "2019-07-08",
+    "end": "2019-09-02",
+  },
+];
 // Config end
 
 const HOUR_IN_MS = 60 * 60 * 1000;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
-
-// Pacific Daylight Savings Time for the start of the day
-const DAYSTART_OFFSET_TO_UTC_IN_HOURS = 7;
 
 /* Width of time window for which recent tree status statistics get calculated. */
 const shorttermTimedelta = SHORTTERM_VIEW_IN_DAYS * DAY_IN_MS;
@@ -322,11 +356,11 @@ async function getTreeStats(treename) {
     let timeTotal = treeStatsForDay["open"] + treeStatsForDay["closed"] + treeStatsForDay["approval-required"];
     for (let [statusKey, statusValue] of Object.entries(treeStatsForDay)) {
       if (typeof statusValue === "number") {
-        treeStatsForDay[statusKey] = Math.round(1000 * statusValue / timeTotal) / 10;
+        treeStatsForDay[`${statusKey}-percent`] = Math.round(1000 * statusValue / timeTotal) / 10;
       }
     }
     for (let [closedReasonKey, closedReasonValue] of Object.entries(treeStatsForDay.closedReasons)) {
-      treeStatsForDay.closedReasons[closedReasonKey] += Math.round(1000 * closedReasonValue / timeTotal) / 10;
+    treeStatsForDay.closedReasons[`${closedReasonKey}-percent`] += Math.round(1000 * closedReasonValue / timeTotal) / 10;
     }
   }
   let openSet = [];
@@ -334,8 +368,8 @@ async function getTreeStats(treename) {
   for (let i = 0; i <= LONGTERM_VIEW_IN_DAYS; i++) { // ignore incomplete, oldest day
     let dayString = UTCDate(timerangeEnd - i * DAY_IN_MS);
     let treeStatsForDay = treeStatsPerDayAvgAccum.get(dayString);
-    openSet.push({x: dayString, y: treeStatsForDay["open"]});
-    closedSet.push({x: dayString, y: treeStatsForDay["closed"] + treeStatsForDay["approval-required"]});
+    openSet.push({x: dayString, y: treeStatsForDay["open-percent"]});
+    closedSet.push({x: dayString, y: treeStatsForDay["closed-percent"] + treeStatsForDay["approval-required-percent"]});
   }
   ctx = document.getElementById(`longterm-chart-${treename}`);
   let myLineChart = new Chart(ctx, {
@@ -359,6 +393,132 @@ async function getTreeStats(treename) {
         },
       }
     });
+
+  // Calculate closing statistics for release cycles.
+
+  let parentNodeToAppendTo = document.querySelector(`#${treename} .cycle-statistics`);
+  for (let releaseCycle of releaseCycles) {
+    let releaseCycleStart = (new Date(releaseCycle["start"])).valueOf();
+    let releaseCycleEnd = (new Date(releaseCycle["end"])).valueOf();
+    if (timerangeEnd < releaseCycleStart) {
+      continue;
+    }
+    let openTime = 0;
+    let closedTime = 0;
+    for (let i = 0; i <= LONGTERM_VIEW_IN_DAYS; i++) { // ignore incomplete, oldest day
+      let dayString = UTCDate(timerangeEnd - i * DAY_IN_MS);
+      if ((releaseCycle["start"] <= dayString) && (dayString < releaseCycle["end"])) {
+        let treeStatsForDay = treeStatsPerDay.get(dayString);
+        openTime += treeStatsForDay["open"];
+        closedTime += treeStatsForDay["closed"] + treeStatsForDay["approval-required"];
+      }
+    }
+
+    let closedShare = closedTime / openTime * 100;
+
+    let releaseCycleTreeClosures = [];
+    let currentTreeClosure = {};
+    let enteredCycle = false;
+    for (let i = treestatusChanges.length - 1; i >= 0; i--) {
+      let treeStatusChange = treestatusChanges[i];
+      if ((treeStatusChange["when"] < releaseCycleStart) || (releaseCycleEnd < treeStatusChange["when"])) {
+        continue;
+      }
+      if (!enteredCycle && (releaseCycleTreeClosures.length == 0) && (treestatusChanges[i + 1]["status"] !== "open")) {
+        // Previous tree closure defines the initial state;
+        currentTreeClosure = {
+          "start": releaseCycleStart,
+          "end": undefined
+        };
+      }
+      enteredCycle = true;
+      if ((treestatusChanges[i + 1]["status"] !== "open") && (treestatusChanges[i]["status"] === "open")) {
+        currentTreeClosure["end"] =  treeStatusChange["when"];
+        releaseCycleTreeClosures.push(currentTreeClosure);
+      }
+      if ((treestatusChanges[i + 1]["status"] === "open") && (treestatusChanges[i]["status"] !== "open")) {
+        currentTreeClosure = {
+          "start": treeStatusChange["when"],
+          "end": undefined
+        };
+      }
+    }
+    if (typeof currentTreeClosure["end"] === "undefined") {
+      currentTreeClosure["end"] = Math.min(timerangeEnd, releaseCycleEnd);
+      releaseCycleTreeClosures.push(currentTreeClosure);
+    }
+
+    /* When all trees got closed at once, sometimes many of them shall be
+    reopened and few remain closed. This is usually done by reverting the
+    previous action of closing all trees (= reopening) and then closing the few
+    trees again. Let's ignore those short reopenings and merge the times of
+    tree closing. */
+    let releaseCycleTreeClosuresSanitized = [];
+    for (let i = 0; i < releaseCycleTreeClosures.length; i++) {
+      let currentClosure = releaseCycleTreeClosures[i];
+      if (releaseCycleTreeClosuresSanitized.length == 0) {
+        releaseCycleTreeClosuresSanitized.push(currentClosure);
+        continue;
+      }
+      let openToClose = currentClosure["start"] - releaseCycleTreeClosuresSanitized[releaseCycleTreeClosuresSanitized.length - 1]["end"];
+      // Merge tree closing windows with less than 2 minutes of open time between them.
+      if (openToClose < 1000 * 60 * 2) {
+        releaseCycleTreeClosuresSanitized[releaseCycleTreeClosuresSanitized.length - 1]["end"] = currentClosure["end"];
+      } else {
+        releaseCycleTreeClosuresSanitized.push(currentClosure);
+      }
+    }
+    let treeClosureLengths = [];
+    for (treeClosure of releaseCycleTreeClosuresSanitized) {
+      treeClosureLengths.push(treeClosure["end"] - treeClosure["start"]);
+    }
+    treeClosureLengths.sort((a, b) => a - b);
+    let treeClosureLengthsMin = [];
+    for (treeClosureLength of treeClosureLengths) {
+      treeClosureLengthsMin.push(treeClosureLength / (1000 * 60));
+    }
+
+    let treeClosureLengthMeanSum = 0;
+    for (treeClosureLengthMin of treeClosureLengthsMin) {
+      treeClosureLengthMeanSum += treeClosureLengthMin;
+    }
+    let treeClosureLengthMean = treeClosureLengthMeanSum / treeClosureLengthsMin.length;
+
+    let treeClosureLengthMedian = undefined;
+    if (treeClosureLengthsMin.length % 2 == 0) {
+      treeClosureLengthMedian = (treeClosureLengthsMin[treeClosureLengthsMin.length / 2 - 1] + treeClosureLengthsMin[treeClosureLengthsMin.length / 2 - 1]) / 2;
+    } else {
+      treeClosureLengthMedian = treeClosureLengthsMin[(treeClosureLengthsMin.length - 1) / 2];
+    }
+
+    let treeClosureLengthMax = treeClosureLengthsMin[treeClosureLengthsMin.length - 1];
+
+    let treeClosureCount = treeClosureLengthsMin.length;
+
+    let now = Math.min(timerangeEnd, releaseCycleEnd);
+    let treeClosureCountPerDay = treeClosureCount / ((now - releaseCycleStart) / (1000 * 60 * 60 * 24));
+
+    let htmlOutput = `
+      <div class="cycle-statistics-right">${releaseCycle["version"]}</div>
+      <div>${releaseCycle["start"]}</div>
+      <div>${releaseCycle["end"]}</div>
+      <div class="cycle-statistics-right">${numberFormatterOneDigit.format(closedShare)}</div>
+      <div class="cycle-statistics-right">${numberFormatterOneDigit.format(treeClosureLengthMean)}</div>
+      <div class="cycle-statistics-right">${numberFormatterOneDigit.format(treeClosureLengthMedian)}</div>
+      <div class="cycle-statistics-right">${numberFormatterOneDigit.format(treeClosureLengthMax)}</div>
+      <div class="cycle-statistics-right">${treeClosureCount}</div>
+      <div class="cycle-statistics-right">${numberFormatterOneDigit.format(treeClosureCountPerDay)}</div>
+    `;
+    let elementToAppend = document.createElement("div");
+    elementToAppend.setAttribute("class", "row cycle-statistics-values");
+    elementToAppend.innerHTML = htmlOutput;
+    if (parentNodeToAppendTo.query == 1) {
+      /* only header exists, inserting first row */
+      parentNodeToAppendTo.append(elementToAppend);
+    } else {
+      parentNodeToAppendTo.insertBefore(elementToAppend, parentNodeToAppendTo.querySelector(".cycle-statistics-values"));
+    }
+  }
 }
 
 //getTreeStats("try");

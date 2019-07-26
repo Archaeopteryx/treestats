@@ -7,6 +7,22 @@ body {
   white-space: pre;
 }
 
+.cycle-statistics .row > div {
+  min-width: 150px;
+  width: 150px;
+}
+
+.cycle-statistics-right {
+  box-sizing: border-box;
+  padding: 0px 25px;
+  text-align: right;
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
+}
+
 .tree-section {
   border: 3px solid #999;
   margin-top: 20px;
