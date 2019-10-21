@@ -243,7 +243,7 @@ async function getTreeStats(treename) {
     }
     /* Multiple closure categories possible, we only use the first one found
        for simplicity. */
-    let closedReason = treestatusChanges[i]["tags"].length > 0 ? treestatusChanges[i]["tags"][0] : "unknown";
+    let closedReason = treestatusChanges[i]["tags"].length > 0 && treestatusChanges[i]["tags"][0].length > 0 ? treestatusChanges[i]["tags"][0] : "unknown";
     if (!treeStatsPerDay.get(UTCDate(timerangeEnd)).closedReasons.hasOwnProperty(closedReason)) {
       document.getElementById("warnings-and-errors").textContent += `Warning: Unknown closed reason '${closedReason}' in data for tree '${treename}'. Data taken into account for reasons why trees got closed as "unknown" but used as for calculating closure time.'\r\n`;
       closedReason = "unknown";
