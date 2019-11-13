@@ -157,7 +157,7 @@ var chartData = {
 };
 
 async function getTreestatusChanges({treename, start=Date.now() - longtermTimedelta - averageLength, end=Date.now()}) {
-  let response = await fetch("https://treestatus.mozilla-releng.net/trees/" + treename + "/logs?all=1");
+  let response = await fetch("https://treestatus.mozilla-releng.net/trees/" + treename + "/logs_all");
   let responseText = await response.text();
   let statusChanges = [];
   statusChanges.push({reason: "",
@@ -202,6 +202,7 @@ async function getTreeStats(treename) {
       /* Multiple closure categories possible, we only use the first one found
          for simplicity. */
       let closedReason = treestatusChanges[i]["tags"].length > 0 ? treestatusChanges[i]["tags"][0] : "unknown";
+      closedReason = closedReason.replace(/_/g, "-");
       if (!treeStats.closedReasons.hasOwnProperty(closedReason)) {
         document.getElementById("warnings-and-errors").textContent += `Warning: Unknown closed reason '${closedReason}' in data for tree '${treename}'. Data taken into account for reasons why trees got closed as "unknown" but used as for calculating closure time.'\r\n`;
         closedReason = "unknown";
@@ -249,6 +250,7 @@ async function getTreeStats(treename) {
     /* Multiple closure categories possible, we only use the first one found
        for simplicity. */
     let closedReason = treestatusChanges[i]["tags"].length > 0 && treestatusChanges[i]["tags"][0].length > 0 ? treestatusChanges[i]["tags"][0] : "unknown";
+    closedReason = closedReason.replace(/_/g, "-");
     if (!treeStatsPerDay.get(UTCDate(timerangeEnd)).closedReasons.hasOwnProperty(closedReason)) {
       document.getElementById("warnings-and-errors").textContent += `Warning: Unknown closed reason '${closedReason}' in data for tree '${treename}'. Data taken into account for reasons why trees got closed as "unknown" but used as for calculating closure time.'\r\n`;
       closedReason = "unknown";
