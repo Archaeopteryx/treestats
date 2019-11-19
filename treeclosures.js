@@ -426,7 +426,7 @@ async function getTreeStats(treename) {
       }
     }
 
-    let closedShare = closedTime / openTime * 100;
+    let closedShare = closedTime / (closedTime + openTime) * 100;
 
     let releaseCycleTreeClosures = [];
     let currentTreeClosure = {};
