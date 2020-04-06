@@ -68,6 +68,11 @@ const releaseCycles = [
     "start": "2020-03-09",
     "end": "2020-04-06",
   },
+  {
+    "version": 77,
+    "start": "2020-04-06",
+    "end": "2020-05-04",
+  },
 ];
 // Config end
 
