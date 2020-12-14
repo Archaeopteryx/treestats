@@ -477,6 +477,9 @@ async function getTreeStats(treename) {
   for (let releaseCycle of releaseCycles) {
     let releaseCycleStart = (new Date(releaseCycle["start"])).valueOf();
     let releaseCycleEnd = (new Date(releaseCycle["end"])).valueOf();
+    if (releaseCycleStart <= timerangeStart) {
+      continue;
+    }
     if (timerangeEnd < releaseCycleStart) {
       continue;
     }
