@@ -271,6 +271,14 @@ const releaseCycles = [
        calculations based on full weeks, this remains at 2023-07-03. */
     "end": "2023-07-03",
   },
+  {
+    "version": 117,
+    /* Actual merge day is 2023-07-04 because 03 is a non-working day for
+       Mozilla and the approximation is no changes on that day. To simplify
+       calculations based on full weeks, this remains at 2023-07-03. */
+    "start": "2023-07-03",
+    "end": "2023-07-31",
+  },
 ];
 // Config end
 
