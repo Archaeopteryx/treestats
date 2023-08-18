@@ -279,6 +279,11 @@ const releaseCycles = [
     "start": "2023-07-03",
     "end": "2023-07-31",
   },
+  {
+    "version": 118,
+    "start": "2023-07-31",
+    "end": "2023-08-28",
+  },
 ];
 // Config end
 
