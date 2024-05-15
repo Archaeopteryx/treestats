@@ -443,7 +443,7 @@ var chartData = {
 };
 
 async function getTreestatusChanges({treename, start=Date.now() - longtermTimedelta - averageLength, end=Date.now()}) {
-  let response = await fetch("https://treestatus.mozilla-releng.net/trees/" + treename + "/logs_all");
+  let response = await fetch("https://treestatus.prod.lando.prod.cloudops.mozgcp.net/trees/" + treename + "/logs_all");
   let responseText = await response.text();
   let statusChanges = [];
   statusChanges.push({reason: "",
